@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset="utf-8"/>
+<body>
+  <h3>POC Chat</h3>
+  <div>
+    <input id="conv" placeholder="conversation id" value="demo-1"/>
+    <input id="user" placeholder="user id" value="userA"/>
+    <button id="join">Join</button>
+  </div>
+  <div>
+    <input id="apiKey" placeholder="OpenAI API key"/>
+    <input id="model" placeholder="model (gpt-4o-mini)"/>
+    <button id="reg">Use my model</button>
+  </div>
+  <div>
+    <input id="text" placeholder="message" style="width:60%"/>
+    <button id="send">Send</button>
+    <button id="invoke">Invoke my model</button>
+  </div>
+  <pre id="log" style="background:#111;color:#0f0;padding:8px;height:300px;overflow:auto"></pre>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    const logEl = document.getElementById('log');
+    const log = (s)=>{ logEl.textContent += s + '\n'; logEl.scrollTop = logEl.scrollHeight; };
+
+    const socket = io();
+    const conv = document.getElementById('conv');
+    const user = document.getElementById('user');
+    const apiKey = document.getElementById('apiKey');
+    const model = document.getElementById('model');
+    const text = document.getElementById('text');
+
+    document.getElementById('join').onclick = ()=>{
+      socket.emit('join', conv.value);
+      log('joined ' + conv.value + ' as ' + user.value);
+    };
+    document.getElementById('reg').onclick = async ()=>{
+      await fetch('/register-provider', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ userId: user.value, provider:'openai', config:{ apiKey: apiKey.value, model: model.value || 'gpt-4o-mini' }})
+      });
+      log('provider set for ' + user.value);
+    };
+    document.getElementById('send').onclick = async ()=>{
+      await fetch('/message', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ conversationId: conv.value, author: user.value, text: text.value })
+      });
+      text.value='';
+    };
+    document.getElementById('invoke').onclick = async ()=>{
+      const r = await fetch('/invoke', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ conversationId: conv.value, userId: user.value })
+      });
+      const j = await r.json();
+      log('assistant: ' + (j.message?.text || JSON.stringify(j)));
+    };
+    socket.on('message', (m)=> log(`${m.author}: ${m.text}`));
+  </script>
+</body>
