@@ -1,6 +1,12 @@
 import { useState } from 'react';
 
-export function Composer({ onSend, onInvoke }: { onSend: (t: string) => void; onInvoke: (t: string) => void }) {
+type Props = {
+  onSend: (text: string) => void;
+  onInvoke: (text: string) => void;
+  modelRegistered: boolean;
+};
+
+export function Composer({ onSend, onInvoke, modelRegistered }: Props) {
   const [text, setText] = useState('');
   return (
     <div className="p-4 flex gap-2 bg-gray-800">
@@ -20,13 +26,22 @@ export function Composer({ onSend, onInvoke }: { onSend: (t: string) => void; on
         Send
       </button>
       <button
-        className="px-3 py-2 bg-green-600 text-white rounded"
+        className={`group flex items-center rounded-full text-white transition-all hover:scale-110 ${
+          modelRegistered
+            ? 'bg-green-600 animate-pulse shadow-lg shadow-green-500/50'
+            : 'bg-gray-600'
+        } px-2`}
         onClick={() => {
           onInvoke(text);
           setText('');
         }}
       >
-        Invoke my model
+        <span className="text-xs">🤖</span>
+        <span
+          className="ml-1 overflow-hidden whitespace-nowrap max-w-0 group-hover:max-w-xs transition-all duration-300"
+        >
+          {modelRegistered ? 'Send to AI' : 'BYOM'}
+        </span>
       </button>
     </div>
   );

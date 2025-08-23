@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export function JoinBar({ onJoin }: { onJoin: (userId: string, convId: string) => void }) {
+export function JoinBar({ onJoin }: { onJoin: (_userId: string, _convId: string) => void }) {
   const [userId, setUserId] = useState('');
   const [convId, setConvId] = useState('');
   return (
