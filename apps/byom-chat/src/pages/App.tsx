@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BYOMProvider, useBYOM } from '@chat-hub/byom';
+import { BYOMProvider, useBYOM } from '@byom/sdk';
 import { Header } from '../components/Header';
 import { JoinBar } from '../components/JoinBar';
 import { ProviderForm } from '../components/ProviderForm';
@@ -63,8 +63,9 @@ function InnerApp() {
 }
 
 export default function App() {
+  const baseUrl = import.meta.env.VITE_BYOM_API_URL || 'http://localhost:3000';
   return (
-    <BYOMProvider baseUrl="https://chat-hub-ybyy.onrender.com">
+    <BYOMProvider baseUrl={baseUrl}>
       <InnerApp />
     </BYOMProvider>
   );

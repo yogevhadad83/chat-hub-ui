@@ -1,12 +1,12 @@
 {
-  "name": "chat-hub-monorepo",
+  "name": "byom-monorepo",
   "private": true,
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
-    "build": "npm run build -w packages/byom-sdk && npm run build -w apps/chat-hub-ui",
-    "dev": "npm run dev -w apps/chat-hub-ui",
+    "build": "npm run build -w packages/byom-sdk && npm run build -w apps/byom-chat",
+    "dev": "npm run dev -w apps/byom-chat",
     "lint": "npm run lint -ws",
     "typecheck": "tsc -b",
-    "start": "npm run preview -w apps/chat-hub-ui"
+    "start": "npm run build && npm run preview -w apps/byom-chat"
   }
 }

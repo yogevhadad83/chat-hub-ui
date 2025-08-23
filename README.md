@@ -1,4 +1,4 @@
-# Chat Hub Monorepo
+# BYOM Monorepo
 
 This repo contains a BYOM SDK and a React chat app that uses it.
 
@@ -10,6 +10,8 @@ npm run dev
 ```
 
 The dev script builds the SDK in watch mode and starts the Vite dev server for the app at http://localhost:5173.
+
+The chat app expects the BYOM backend URL to be supplied via the `VITE_BYOM_API_URL` environment variable.
 
 ## Build
 
@@ -45,10 +47,10 @@ npm publish --access public
 ## Using the SDK in Your App
 
 ```tsx
-import { BYOMProvider, useBYOM } from "@chat-hub/byom";
+import { BYOMProvider, useBYOM } from "@byom/sdk";
 
 // Wrap your app
-<BYOMProvider baseUrl="https://chat-hub-ybyy.onrender.com">
+<BYOMProvider baseUrl={import.meta.env.VITE_BYOM_API_URL}>
   <App />
 </BYOMProvider>;
 
