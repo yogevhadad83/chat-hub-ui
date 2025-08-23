@@ -1,5 +1,8 @@
 services:
   - type: static
     name: byom-chat
-    buildCommand: npm install && npm run build -w apps/byom-chat
+    buildCommand: npm ci && npm run build -w packages/byom-sdk && npm run build -w apps/byom-chat
     publishDir: apps/byom-chat/dist
+    envVars:
+      - key: VITE_BYOM_API_URL
+        value: https://chat-hub-ybyy.onrender.com
