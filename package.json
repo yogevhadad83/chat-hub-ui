@@ -6,6 +6,7 @@
     "build": "npm run build -w packages/byom-sdk && npm run build -w apps/chat-hub-ui",
     "dev": "npm run dev -w apps/chat-hub-ui",
     "lint": "npm run lint -ws",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "start": "npm run preview -w apps/chat-hub-ui"
   }
 }

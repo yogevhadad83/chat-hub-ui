@@ -17,6 +17,16 @@ The dev script builds the SDK in watch mode and starts the Vite dev server for t
 npm run build
 ```
 
+## Preview
+
+For a production-style preview (e.g., on Render), run:
+
+```bash
+npm start
+```
+
+This serves the built app using Vite's preview mode.
+
 ## Type Checking and Linting
 
 ```bash
