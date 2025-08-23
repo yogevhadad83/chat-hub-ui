@@ -1,0 +1,5 @@
+services:
+  - type: static
+    name: byom-chat
+    buildCommand: npm install && npm run build -w apps/byom-chat
+    publishDir: apps/byom-chat/dist
