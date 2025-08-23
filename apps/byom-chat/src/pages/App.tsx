@@ -121,8 +121,8 @@ function InnerApp() {
 }
 
 export default function App() {
-  const baseUrl =
-    import.meta.env.VITE_SAAS_BASE_URL || 'https://chat-hub-ybyy.onrender.com';
+  // Use local proxy to avoid CORS in dev/preview. Can be overridden by VITE_SAAS_BASE_URL.
+  const baseUrl = import.meta.env.VITE_SAAS_BASE_URL || '/api';
   return (
     <BYOMProvider baseUrl={baseUrl}>
       <InnerApp />

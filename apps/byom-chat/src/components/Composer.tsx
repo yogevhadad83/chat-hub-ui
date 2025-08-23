@@ -22,12 +22,12 @@ export function Composer({
     <div className="p-4 flex gap-2 bg-gray-800">
       <div className="relative flex-1">
         <input
-          className="w-full p-2 bg-gray-700 text-white rounded pr-20"
+          className="w-full p-2 bg-gray-700 text-white rounded pr-28"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Type a message"
         />
-        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+  <div className="absolute right-2 top-1/2 -translate-y-1/2 z-50">
           <ByomWidget
             userId={userId}
             conversationId={conversationId}

@@ -2,6 +2,8 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
+import { networkInterfaces } from 'os';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 interface ChatMessage {
   author: string;
@@ -17,6 +19,20 @@ const io = new Server(httpServer, {
   cors: { origin: true },
 });
 
+// Proxy BYOM SaaS API to avoid CORS in local/preview environments.
+// All requests to /api/* will be forwarded to SAAS_BASE_URL (default Render URL).
+const SAAS_BASE_URL =
+  process.env.SAAS_BASE_URL || 'https://chat-hub-ybyy.onrender.com';
+app.use(
+  '/api',
+  createProxyMiddleware({
+    target: SAAS_BASE_URL,
+    changeOrigin: true,
+    xfwd: true,
+    pathRewrite: { '^/api': '' },
+  })
+);
+
 const distPath = __dirname;
 app.use(express.static(distPath));
 app.get('*', (_req, res) => {
@@ -26,7 +42,7 @@ app.get('*', (_req, res) => {
 const conversations: Record<string, ChatMessage[]> = {};
 
 io.on('connection', (socket) => {
-  socket.on('join', ({ conversationId, userId }) => {
+  socket.on('join', ({ conversationId, userId: _userId }) => {
     socket.join(conversationId);
     const history = conversations[conversationId] || [];
     socket.emit('history', history);
@@ -50,6 +66,16 @@ io.on('connection', (socket) => {
 });
 
 const PORT = Number(process.env.PORT) || 4173;
-httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`server listening on ${PORT}`);
+const HOST = process.env.HOST || '0.0.0.0';
+httpServer.listen(PORT, HOST, () => {
+  const localUrl = `http://localhost:${PORT}`;
+  const nets = networkInterfaces();
+  const lan = Object.values(nets)
+    .flat()
+    .find((i) => i && i.family === 'IPv4' && !i.internal)?.address;
+  const lanUrl = lan ? `http://${lan}:${PORT}` : null;
+  console.log('');
+  console.log('Server running:');
+  console.log(`  Local:   ${localUrl}`);
+  if (lanUrl) console.log(`  Network: ${lanUrl}`);
 });
