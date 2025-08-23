@@ -31,9 +31,10 @@
   <pre id="log" style="background:#111;color:#0f0;padding:8px;height:300px;overflow:auto"></pre>
 
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="/config.js"></script>
   <script>
     // SaaS base URL
-    const API = "https://chat-hub-ybyy.onrender.com";
+    const API = (window.CHAT_HUB_CONFIG && window.CHAT_HUB_CONFIG.API) || "https://chat-hub-ybyy.onrender.com";
 
     const logEl = document.getElementById('log');
     const log = (s)=>{ logEl.textContent += s + '\n'; logEl.scrollTop = logEl.scrollHeight; };
