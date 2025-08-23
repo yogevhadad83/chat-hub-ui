@@ -7,6 +7,6 @@
     "dev": "npm run dev -w apps/byom-chat",
     "lint": "npm run lint -ws",
     "typecheck": "tsc -b",
-    "start": "npm run build && npm run preview -w apps/byom-chat"
+    "start": "npm run build && npm run preview -w apps/byom-chat -- --host 0.0.0.0 --port $PORT"
   }
 }
