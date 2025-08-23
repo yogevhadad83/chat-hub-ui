@@ -9,6 +9,7 @@ type Props = {
   onSend: (t: string) => void;
   getSnapshot: () => Message[];
   onAssistantMessage: (msg: { text: string; meta?: { modelId?: string } }) => void;
+  onUserPrompt: (text: string) => void;
 };
 
 export function Composer({
@@ -17,6 +18,7 @@ export function Composer({
   onSend,
   getSnapshot,
   onAssistantMessage,
+  onUserPrompt,
 }: Props) {
   const [text, setText] = useState('');
   return (
@@ -35,6 +37,7 @@ export function Composer({
             getSnapshot={getSnapshot}
             getPrompt={() => text}
             onAssistantMessage={onAssistantMessage}
+            onUserPrompt={onUserPrompt}
             buttonLogoSrc={logo}
             buttonAriaLabel="BYOM"
           />

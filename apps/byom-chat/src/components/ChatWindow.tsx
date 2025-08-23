@@ -1,37 +1,41 @@
 import { Message } from '../types';
 
 type Props = {
+  userId: string;
   messages: (Message & { meta?: { modelId?: string } })[];
-  onPublishAssistant?: (m: Message & { meta?: { modelId?: string } }) => void;
+  onPublish?: (m: Message & { meta?: { modelId?: string } }) => void;
 };
 
-export function ChatWindow({ messages, onPublishAssistant }: Props) {
+export function ChatWindow({ userId, messages, onPublish }: Props) {
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-gray-900">
       {messages.map((m, i) => {
-        const isUser = m.role === 'user';
+        const isMine = m.role === 'user' && m.author === userId;
         const isAssistant = m.role === 'assistant';
+        const isOtherUser = m.role === 'user' && m.author !== userId;
         const isEphemeral = Boolean(m.ephemeral);
         return (
-          <div key={i} className={isUser ? 'text-right' : 'text-left'}>
+          <div key={i} className={isMine ? 'text-right' : 'text-left'}>
             <div
               className={`inline-flex items-start gap-3 max-w-2xl ${
-                isUser ? 'flex-row-reverse' : 'flex-row'
+                isMine ? 'flex-row-reverse' : 'flex-row'
               }`}
             >
               <div
                 className={`px-4 py-3 rounded-2xl shadow-sm border text-sm leading-relaxed whitespace-pre-wrap break-words ${
-                  isUser
+                  isMine
                     ? 'bg-blue-600 text-white border-blue-500'
+                    : isOtherUser
+                    ? 'bg-green-600 text-white border-green-500'
                     : 'bg-white text-gray-900 border-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700'
-                } ${isAssistant && isEphemeral ? 'opacity-80 ring-1 ring-amber-400/60' : ''}`}
+                } ${isEphemeral ? 'opacity-80 ring-1 ring-amber-400/60' : ''}`}
               >
                 {m.text}
               </div>
-              {isAssistant && isEphemeral && (
+              {isEphemeral && (
                 <button
                   className="self-center text-xs px-2 py-1 rounded border border-amber-400 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                  onClick={() => onPublishAssistant?.(m)}
+                  onClick={() => onPublish?.(m)}
                 >
                   Show in chat
                 </button>
