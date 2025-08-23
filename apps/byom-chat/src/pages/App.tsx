@@ -1,61 +1,119 @@
-import { useState } from 'react';
-import { BYOMProvider, useBYOM } from '@byom/sdk';
+import { useEffect, useRef, useState } from 'react';
+import { BYOMProvider } from '@chat-hub/byom';
+import { io, Socket } from 'socket.io-client';
 import { Header } from '../components/Header';
 import { JoinBar } from '../components/JoinBar';
-import { ProviderForm } from '../components/ProviderForm';
 import { ChatWindow } from '../components/ChatWindow';
 import { Composer } from '../components/Composer';
-import { getMessages, addUserMessage, addAssistantMessage } from '../store/chatStore';
+import {
+  addMessage,
+  getMessages,
+  setMessages,
+  useMessages,
+  type StoredMessage,
+} from '../store/chatStore';
 import type { Message } from '../types';
 
 function InnerApp() {
-  const [userId, setUserId] = useState('');
-  const [convId, setConvId] = useState('');
+  const [userId, setUserId] = useState(() => {
+    return (
+      localStorage.getItem('userId') ||
+      `user-${Math.random().toString(16).slice(2, 6)}`
+    );
+  });
+  const [convId, setConvId] = useState(() => {
+    return localStorage.getItem('conversationId') || 'demo';
+  });
   const [joined, setJoined] = useState(false);
-  const [modelId, setModelId] = useState<string | undefined>();
-  const { invoke } = useBYOM();
-  const messages = getMessages(convId);
+  const socketRef = useRef<Socket | null>(null);
 
-  const handleJoin = (u: string, c: string) => {
-    setUserId(u);
-    setConvId(c);
+  useEffect(() => {
+    localStorage.setItem('userId', userId);
+  }, [userId]);
+  useEffect(() => {
+    localStorage.setItem('conversationId', convId);
+  }, [convId]);
+
+  const messages = useMessages(convId);
+
+  const handleJoin = () => {
+    const s = io();
+    socketRef.current?.disconnect();
+    socketRef.current = s;
+    s.emit('join', { conversationId: convId, userId });
+    s.on('history', (msgs: StoredMessage[]) => {
+      setMessages(convId, msgs);
+    });
+    s.on('message', (msg: StoredMessage) => {
+      addMessage(convId, msg);
+    });
+    s.on('assistant', (msg: StoredMessage) => {
+      addMessage(convId, msg);
+    });
     setJoined(true);
   };
 
   const handleSend = (text: string) => {
-    if (!joined) return;
-    addUserMessage(convId, userId, text);
+    const ts = Date.now();
+    const msg: StoredMessage = { author: userId, role: 'user', text, ts };
+    addMessage(convId, msg);
+    socketRef.current?.emit('message', {
+      conversationId: convId,
+      author: userId,
+      text,
+      ts,
+    });
   };
 
-  const handleInvoke = async (text: string) => {
-    if (!joined) return;
-    addUserMessage(convId, userId, text);
-    const snapshot: Message[] = getMessages(convId)
-      .slice(-50)
-      .map(({ author, role, text: t, ts }) => ({ author, role, text: t, ts }));
-    try {
-      const res = await invoke({
-        userId,
-        conversationId: convId,
-        prompt: text,
-        conversation: snapshot,
-      });
-      addAssistantMessage(convId, 'assistant', res.reply, res.meta?.modelId);
-      setModelId(res.meta?.modelId);
-    } catch (e: any) {
-      addAssistantMessage(convId, 'assistant', String(e));
-    }
+  const handleAssistantMessage = (m: {
+    text: string;
+    meta?: { modelId?: string };
+  }) => {
+    const ts = Date.now();
+    const msg: StoredMessage = {
+      author: 'assistant',
+      role: 'assistant',
+      text: m.text,
+      ts,
+      meta: m.meta,
+    };
+    addMessage(convId, msg);
+    socketRef.current?.emit('assistant', {
+      conversationId: convId,
+      author: 'assistant',
+      text: m.text,
+      ts,
+      meta: m.meta,
+    });
   };
+
+  const getSnapshot = (): Message[] =>
+    getMessages(convId)
+      .slice(-50)
+      .map(({ author, role, text, ts }) => ({ author, role, text, ts }));
 
   return (
     <div className="flex flex-col h-screen">
-      <Header modelId={modelId} />
-      {!joined && <JoinBar onJoin={handleJoin} />}
+      <Header conversationId={convId} connected={joined} />
+      {!joined && (
+        <JoinBar
+          userId={userId}
+          convId={convId}
+          setUserId={setUserId}
+          setConvId={setConvId}
+          onJoin={handleJoin}
+        />
+      )}
       {joined && (
         <>
-          <ProviderForm userId={userId} />
           <ChatWindow messages={messages} />
-          <Composer onSend={handleSend} onInvoke={handleInvoke} />
+          <Composer
+            userId={userId}
+            conversationId={convId}
+            onSend={handleSend}
+            getSnapshot={getSnapshot}
+            onAssistantMessage={handleAssistantMessage}
+          />
         </>
       )}
     </div>
@@ -63,7 +121,8 @@ function InnerApp() {
 }
 
 export default function App() {
-  const baseUrl = import.meta.env.VITE_BYOM_API_URL || 'http://localhost:3000';
+  const baseUrl =
+    import.meta.env.VITE_SAAS_BASE_URL || 'https://chat-hub-ybyy.onrender.com';
   return (
     <BYOMProvider baseUrl={baseUrl}>
       <InnerApp />

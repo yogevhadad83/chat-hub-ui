@@ -1,21 +1,21 @@
-# @byom/sdk
+# @chat-hub/byom
 
 A tiny client for the BYOM service.
 
 ## Install
 
 ```bash
-npm install @byom/sdk
+npm install @chat-hub/byom
 ```
 
 ## Usage
 
 ```tsx
-import { BYOMProvider, useBYOM } from '@byom/sdk';
+import { BYOMProvider, useBYOM } from '@chat-hub/byom';
 
 function App() {
   return (
-    <BYOMProvider baseUrl={import.meta.env.VITE_BYOM_API_URL}>
+    <BYOMProvider baseUrl={import.meta.env.VITE_SAAS_BASE_URL}>
       <MyChat />
     </BYOMProvider>
   );

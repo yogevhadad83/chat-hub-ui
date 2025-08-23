@@ -1,5 +1,5 @@
 {
-  "name": "@byom/sdk",
+  "name": "@chat-hub/byom",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useBYOM } from '@byom/sdk';
+import { useBYOM } from '@chat-hub/byom';
 
 export function ProviderForm({ userId }: { userId: string }) {
   const { registerProvider } = useBYOM();

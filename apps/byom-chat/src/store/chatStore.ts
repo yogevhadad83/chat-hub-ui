@@ -1,21 +1,41 @@
+import { useSyncExternalStore } from 'react';
 import { Message } from '../types';
 
-type Stored = Message & { meta?: { modelId?: string } };
+export type StoredMessage = Message & { meta?: { modelId?: string } };
 
-const store = new Map<string, Stored[]>();
+const store = new Map<string, StoredMessage[]>();
+const listeners = new Set<() => void>();
 
-export function getMessages(convId: string): Stored[] {
+function emit() {
+  listeners.forEach((l) => l());
+}
+
+export function getMessages(convId: string): StoredMessage[] {
   return store.get(convId) ?? [];
 }
 
-export function addUserMessage(convId: string, author: string, text: string) {
-  const msgs = getMessages(convId);
-  const msg: Stored = { author, role: 'user', text, ts: Date.now() };
-  store.set(convId, [...msgs, msg]);
+export function setMessages(convId: string, msgs: StoredMessage[]) {
+  store.set(convId, msgs);
+  emit();
 }
 
-export function addAssistantMessage(convId: string, author: string, text: string, modelId?: string) {
+export function addMessage(convId: string, msg: StoredMessage) {
   const msgs = getMessages(convId);
-  const msg: Stored = { author, role: 'assistant', text, ts: Date.now(), meta: { modelId } };
-  store.set(convId, [...msgs, msg]);
+  const idx = msgs.findIndex((m) => m.ts === msg.ts && m.author === msg.author);
+  if (idx >= 0) {
+    msgs[idx] = msg;
+  } else {
+    msgs.push(msg);
+  }
+  store.set(convId, msgs.slice(-500));
+  emit();
+}
+
+export function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export function useMessages(convId: string) {
+  return useSyncExternalStore(subscribe, () => getMessages(convId));
 }

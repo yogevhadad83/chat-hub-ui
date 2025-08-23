@@ -1,8 +1,16 @@
-import { useState } from 'react';
-
-export function JoinBar({ onJoin }: { onJoin: (userId: string, convId: string) => void }) {
-  const [userId, setUserId] = useState('');
-  const [convId, setConvId] = useState('');
+export function JoinBar({
+  userId,
+  convId,
+  setUserId,
+  setConvId,
+  onJoin,
+}: {
+  userId: string;
+  convId: string;
+  setUserId: (s: string) => void;
+  setConvId: (s: string) => void;
+  onJoin: () => void;
+}) {
   return (
     <div className="p-4 flex gap-2 bg-gray-800">
       <input
@@ -19,7 +27,7 @@ export function JoinBar({ onJoin }: { onJoin: (userId: string, convId: string) =
       />
       <button
         className="px-3 py-2 bg-blue-600 text-white rounded"
-        onClick={() => onJoin(userId, convId)}
+        onClick={onJoin}
       >
         Join
       </button>
