@@ -1,7 +1,11 @@
 import { useSyncExternalStore } from 'react';
 import { Message } from '../types';
 
-export type StoredMessage = Message & { meta?: { modelId?: string } };
+export type StoredMessage = Message & {
+  meta?: { modelId?: string };
+  // When true, the message is visible only to the local user until published.
+  ephemeral?: boolean;
+};
 
 const store = new Map<string, StoredMessage[]>();
 // Stable empty snapshot to satisfy useSyncExternalStore invariants

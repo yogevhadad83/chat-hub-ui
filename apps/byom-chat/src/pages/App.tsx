@@ -65,10 +65,8 @@ function InnerApp() {
     });
   };
 
-  const handleAssistantMessage = (m: {
-    text: string;
-    meta?: { modelId?: string };
-  }) => {
+  const handleAssistantMessage = (m: { text: string; meta?: { modelId?: string } }) => {
+    // Add as ephemeral first; only broadcast when user clicks "Show in chat".
     const ts = Date.now();
     const msg: StoredMessage = {
       author: 'assistant',
@@ -76,13 +74,20 @@ function InnerApp() {
       text: m.text,
       ts,
       meta: m.meta,
+      ephemeral: true,
     };
     addMessage(convId, msg);
+  };
+
+  const publishAssistant = (m: Message & { meta?: { modelId?: string } }) => {
+    // Replace the ephemeral entry with a non-ephemeral version and broadcast
+    const published: StoredMessage = { ...m, ephemeral: false } as StoredMessage;
+    addMessage(convId, published);
     socketRef.current?.emit('assistant', {
       conversationId: convId,
       author: 'assistant',
       text: m.text,
-      ts,
+      ts: m.ts,
       meta: m.meta,
     });
   };
@@ -106,7 +111,7 @@ function InnerApp() {
       )}
       {joined && (
         <>
-          <ChatWindow messages={messages} />
+          <ChatWindow messages={messages} onPublishAssistant={publishAssistant} />
           <Composer
             userId={userId}
             conversationId={convId}
