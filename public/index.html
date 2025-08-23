@@ -7,11 +7,22 @@
     <input id="user" placeholder="user id" value="userA"/>
     <button id="join">Join</button>
   </div>
+
+  <h4>Provider</h4>
   <div>
-    <input id="apiKey" placeholder="OpenAI API key"/>
-    <input id="model" placeholder="model (gpt-4o-mini)"/>
+    <select id="provider">
+      <option value="openai">OpenAI</option>
+      <option value="http">HTTP</option>
+      <!-- placeholders for future: anthropic, gemini, groq -->
+    </select>
+    <input id="apiKey" placeholder="API key"/>
+    <input id="model" placeholder="model (e.g., gpt-4o-mini)"/>
+    <input id="endpoint" placeholder="endpoint (for provider=http)"/>
+    <input id="systemPrompt" placeholder="optional system prompt"/>
     <button id="reg">Use my model</button>
   </div>
+
+  <h4>Chat</h4>
   <div>
     <input id="text" placeholder="message" style="width:60%"/>
     <button id="send">Send</button>
@@ -21,42 +32,121 @@
 
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script>
+    // SaaS base URL
+    const API = "https://chat-hub-ybyy.onrender.com";
+
     const logEl = document.getElementById('log');
     const log = (s)=>{ logEl.textContent += s + '\n'; logEl.scrollTop = logEl.scrollHeight; };
+
+    // Local in-memory messages: conversationId -> Message[]
+    const localMessages = new Map();
 
     const socket = io();
     const conv = document.getElementById('conv');
     const user = document.getElementById('user');
+    const provider = document.getElementById('provider');
     const apiKey = document.getElementById('apiKey');
     const model = document.getElementById('model');
+    const endpoint = document.getElementById('endpoint');
+    const systemPrompt = document.getElementById('systemPrompt');
     const text = document.getElementById('text');
+
+    const ensureConv = (id)=>{
+      if (!localMessages.has(id)) localMessages.set(id, []);
+      return localMessages.get(id);
+    };
 
     document.getElementById('join').onclick = ()=>{
       socket.emit('join', conv.value);
       log('joined ' + conv.value + ' as ' + user.value);
+      ensureConv(conv.value);
     };
+
+    // Register provider with SaaS
     document.getElementById('reg').onclick = async ()=>{
-      await fetch('/register-provider', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ userId: user.value, provider:'openai', config:{ apiKey: apiKey.value, model: model.value || 'gpt-4o-mini' }})
-      });
-      log('provider set for ' + user.value);
+      if (provider.value === 'openai' && !apiKey.value) { alert('API key required for OpenAI'); return; }
+      if (provider.value === 'http' && !endpoint.value) { alert('Endpoint required for HTTP provider'); return; }
+      try {
+        const r = await fetch(`${API}/register-provider`, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            userId: user.value,
+            provider: provider.value,
+            config: {
+              apiKey: apiKey.value || undefined,
+              model: model.value || undefined,
+              endpoint: endpoint.value || undefined,
+              systemPrompt: systemPrompt.value || undefined
+            }
+          })
+        });
+        const j = await r.json().catch(()=>({}));
+        if (!r.ok) {
+          log('register error: ' + (j.error || r.status));
+        } else {
+          log('provider registered for ' + user.value);
+        }
+      } catch (e) {
+        log('register error: ' + e);
+      }
     };
+
+    // Send message: sync to local server and append to localMessages with role:'user'
     document.getElementById('send').onclick = async ()=>{
+      const msgText = text.value;
+      if (!msgText) return;
       await fetch('/message', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ conversationId: conv.value, author: user.value, text: text.value })
+        body: JSON.stringify({ conversationId: conv.value, author: user.value, text: msgText })
       });
+      // local append happens also from socket, but push immediately for responsiveness
+      const arr = ensureConv(conv.value);
+      arr.push({ author: user.value, role: 'user', text: msgText, ts: Date.now() });
       text.value='';
     };
+
+    // Receive synced messages and store locally
+    socket.on('message', (m)=>{
+      const arr = ensureConv(conv.value);
+      arr.push({ author: m.author, role: m.role || 'user', text: m.text, ts: m.ts || Date.now() });
+      log(`${m.author}: ${m.text}`);
+    });
+
+    // Invoke SaaS with snapshot of conversation
     document.getElementById('invoke').onclick = async ()=>{
-      const r = await fetch('/invoke', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ conversationId: conv.value, userId: user.value })
-      });
-      const j = await r.json();
-      log('assistant: ' + (j.message?.text || JSON.stringify(j)));
+      const messages = ensureConv(conv.value);
+      if (!messages.length) { log('warn: no local messages to send'); return; }
+      // Cap to last 50 messages (client-side only)
+      const snapshot = messages.slice(-50);
+      const prompt = document.getElementById('text').value || 'What should I do next?';
+      try {
+        const r = await fetch(`${API}/chat`, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            userId: user.value,
+            conversationId: conv.value,
+            prompt,
+            conversation: snapshot.map(m => ({ author: m.author, role: m.role, text: m.text, ts: m.ts }))
+          })
+        });
+        const j = await r.json();
+        if (!r.ok) {
+          log('invoke error: ' + (j.error || r.status));
+          return;
+        }
+        const reply = j.reply || j.message || j.text || '';
+        log('assistant: ' + reply);
+        // append assistant message locally
+        const arr = ensureConv(conv.value);
+        const assistantMsg = { author: user.value, role: 'assistant', text: reply, ts: Date.now() };
+        arr.push(assistantMsg);
+        // optional meta
+        if (j.meta?.modelId) log('model: ' + j.meta.modelId);
+        // clear input after invoke
+        document.getElementById('text').value = '';
+      } catch (e) {
+        log('invoke error: ' + e);
+      }
     };
-    socket.on('message', (m)=> log(`${m.author}: ${m.text}`));
   </script>
 </body>
