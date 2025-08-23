@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ByomWidget } from '@chat-hub/byom';
 import type { Message } from '../types';
+import logo from '../../assets/logo.png';
 
 type Props = {
   userId: string;
@@ -27,13 +28,15 @@ export function Composer({
           onChange={(e) => setText(e.target.value)}
           placeholder="Type a message"
         />
-  <div className="absolute right-2 top-1/2 -translate-y-1/2 z-50">
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
           <ByomWidget
             userId={userId}
             conversationId={conversationId}
             getSnapshot={getSnapshot}
             getPrompt={() => text}
             onAssistantMessage={onAssistantMessage}
+            buttonLogoSrc={logo}
+            buttonAriaLabel="BYOM"
           />
         </div>
       </div>
