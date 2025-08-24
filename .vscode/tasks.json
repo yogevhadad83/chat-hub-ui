@@ -42,6 +42,12 @@
 			"type": "shell",
 			"command": "npm run build",
 			"group": "build"
+		},
+		{
+			"label": "Build chat app and SDK",
+			"type": "shell",
+			"command": "npm run build",
+			"group": "build"
 		}
 	]
 }

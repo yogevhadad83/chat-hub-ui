@@ -3,11 +3,11 @@
   "private": true,
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
-    "build": "npm run build -w packages/byom-sdk && npm run build -w apps/byom-chat",
-    "dev": "npm run dev -w apps/byom-chat",
-    "lint": "npm run lint -ws",
-    "typecheck": "tsc -b",
-  "start": "npm run build && node apps/byom-chat/dist/server.cjs",
+  "build": "npm run build -w packages/byom-sdk && npm run build -w apps/byom-chat",
+  "dev": "npm run dev -w apps/byom-chat",
+  "lint": "npm run lint -ws",
+  "typecheck": "tsc -b",
+  "start": "npm run start -w apps/byom-chat",
   "start:render": "node apps/byom-chat/dist/server.cjs"
   }
 }
