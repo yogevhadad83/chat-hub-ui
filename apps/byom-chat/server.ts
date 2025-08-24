@@ -3,6 +3,7 @@ import path from "path";
 import { createServer } from "http";
 import fs from "fs";
 import { Server } from "socket.io";
+import { createProxyMiddleware } from "http-proxy-middleware";
 
 const app = express();
 const server = createServer(app);
@@ -20,6 +21,20 @@ const distDir = candidates.find((p) => fs.existsSync(path.join(p, "index.html"))
 console.log(`[byom-chat] Serving static files from: ${distDir}`);
 
 app.use(express.static(distDir));
+
+// Proxy API to SaaS backend (mirrors Vite dev proxy). Avoids the catch-all returning index.html with 200.
+const saasTarget = process.env.SAAS_BASE_URL || process.env.VITE_SAAS_BASE_URL || "https://chat-hub-ybyy.onrender.com";
+console.log(`[byom-chat] Proxying /api -> ${saasTarget}`);
+app.use(
+  "/api",
+  createProxyMiddleware(
+    {
+      target: saasTarget,
+      changeOrigin: true,
+      pathRewrite: { "^/api": "" },
+    } as any
+  )
+);
 
 app.get("*", (req, res) => {
   const indexPath = path.join(distDir, "index.html");

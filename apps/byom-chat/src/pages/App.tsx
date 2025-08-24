@@ -37,7 +37,9 @@ function InnerApp() {
   const messages = useMessages(convId);
 
   const handleJoin = () => {
-    const s = io();
+    // Allow overriding socket endpoint in dev via VITE_SOCKET_URL; default to same-origin
+    const socketUrl = (import.meta as any).env?.VITE_SOCKET_URL || undefined;
+    const s = io(socketUrl);
     socketRef.current?.disconnect();
     socketRef.current = s;
     s.emit('join', { conversationId: convId, userId });

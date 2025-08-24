@@ -136,7 +136,17 @@ export function ByomWidget({
       if (!resolvedBase) return;
       try {
         const res = await fetch(`${resolvedBase}/providers/${userId}`);
-        if (!cancelled) setRegistered(res.ok);
+        let ok = false;
+        if (res.ok) {
+          // Ensure it's JSON and contains an expected shape to avoid HTML catch-alls
+          try {
+            const data = await res.clone().json();
+            ok = !!data && (Array.isArray(data) || typeof data === 'object');
+          } catch {
+            ok = false;
+          }
+        }
+        if (!cancelled) setRegistered(ok);
       } catch {
         if (!cancelled) setRegistered(false);
       }
