@@ -11,7 +11,7 @@ const io = new IOServer(httpServer, { cors: { origin: '*' } });
 
 const conversations = new Map<string, Msg[]>();
 const PORT = Number(process.env.PORT) || 4173;
-const DIST_DIR = __dirname; // server.cjs is emitted into dist/, serve same folder
+const DIST_DIR = path.resolve(__dirname, '../dist');
 
 io.on('connection', (socket) => {
   socket.on('join', ({ conversationId, userId }) => {
