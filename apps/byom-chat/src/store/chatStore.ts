@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { Message } from '../types';
 
 export type StoredMessage = Message & {
-  meta?: { modelId?: string };
+  meta?: { modelId?: string; sentToAI?: boolean };
   // When true, the message is visible only to the local user until published.
   ephemeral?: boolean;
 };
@@ -24,7 +24,8 @@ export function getMessages(convId: string): StoredMessage[] {
 
 export function setMessages(convId: string, msgs: StoredMessage[]) {
   // Store a copy to avoid outside mutations affecting our state
-  store.set(convId, msgs.slice());
+  const sorted = msgs.slice().sort((a, b) => a.ts - b.ts);
+  store.set(convId, sorted);
   emit();
 }
 
@@ -36,7 +37,21 @@ export function addMessage(convId: string, msg: StoredMessage) {
   if (idx >= 0) {
     msgs[idx] = msg;
   } else {
-    msgs.push(msg);
+    // Insert in timestamp order (ascending) so all clients see consistent ordering
+    let insertAt = msgs.length;
+    // Fast-path: if list is empty or new ts is >= last, append
+    if (msgs.length === 0 || msg.ts >= msgs[msgs.length - 1].ts) {
+      msgs.push(msg);
+    } else {
+      // Find first index with ts greater than new ts
+      for (let i = 0; i < msgs.length; i++) {
+        if (msg.ts < msgs[i].ts) {
+          insertAt = i;
+          break;
+        }
+      }
+      msgs.splice(insertAt, 0, msg);
+    }
   }
   store.set(convId, msgs.slice(-500));
   emit();

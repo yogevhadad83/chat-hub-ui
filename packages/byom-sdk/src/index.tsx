@@ -100,6 +100,7 @@ export type ByomWidgetProps = {
     text: string;
     meta?: { modelId?: string };
   }) => void;
+  onUserPrompt?: (text: string) => void;
   baseUrl?: string;
   // Optional: provide a logo/image URL for the widget button
   buttonLogoSrc?: string;
@@ -113,6 +114,7 @@ export function ByomWidget({
   getSnapshot,
   getPrompt,
   onAssistantMessage,
+  onUserPrompt,
   baseUrl,
   buttonLogoSrc,
   buttonAriaLabel = 'BYOM',
@@ -161,10 +163,12 @@ export function ByomWidget({
 
   async function handleInvoke() {
     try {
+      const prompt = getPrompt();
+      onUserPrompt?.(prompt);
       const res = await invoke({
         userId,
         conversationId,
-        prompt: getPrompt(),
+        prompt,
         conversation: getSnapshot(),
       });
       onAssistantMessage({ text: res.reply, meta: res.meta });
@@ -177,26 +181,22 @@ export function ByomWidget({
     return (
       <>
         <button
-          // Icon-style button; if no logo provided, fall back to styled text
-          className={
-            buttonLogoSrc
-              ? 'w-9 h-9 rounded-full border border-white/70 bg-white/90 shadow-sm hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/70 flex items-center justify-center'
-              : 'px-2 py-1 rounded border border-white/70 bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/70'
-          }
+          className={`group relative flex items-center justify-center overflow-hidden rounded-full border border-white/70 bg-white/90 shadow-sm hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/70 transition-all duration-200 w-8 h-8 hover:w-28`}
           onClick={() => setOpen(true)}
           aria-label={buttonAriaLabel}
-      style={buttonLogoSrc ? { width: 36, height: 36, padding: 0 } : undefined}
         >
           {buttonLogoSrc ? (
             <img
               src={buttonLogoSrc}
               alt={buttonAriaLabel}
-        className="w-6 h-6 object-contain"
-        style={{ width: 24, height: 24 }}
+              className="w-5 h-5 object-contain"
             />
           ) : (
-            'BYOM'
+            <span className="text-xs">BYOM</span>
           )}
+          <span className="ml-2 text-xs text-gray-900 whitespace-nowrap opacity-0 group-hover:opacity-100">
+            BYOM
+          </span>
         </button>
         {open &&
           createPortal(
@@ -280,26 +280,25 @@ export function ByomWidget({
 
   return (
     <button
-      className={
-        buttonLogoSrc
-          ? 'w-9 h-9 rounded-full border border-white/70 bg-green-500 shadow-sm hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/70 flex items-center justify-center'
-          : 'px-2 py-1 rounded border border-white/70 bg-green-600 text-white shadow-sm hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-white/70'
-      }
+      className={`group relative flex items-center justify-center overflow-hidden rounded-full border border-white/70 shadow-sm focus:outline-none focus:ring-2 focus:ring-white/70 transition-all duration-200 w-8 h-8 hover:w-32 ${
+        registered ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-white/90'
+      }`}
       onClick={handleInvoke}
-      aria-label={buttonAriaLabel || 'Ask Model'}
-      title={buttonAriaLabel || 'Ask Model'}
-      style={buttonLogoSrc ? { width: 36, height: 36, padding: 0 } : undefined}
+      aria-label={registered ? 'Send to AI' : buttonAriaLabel || 'Ask Model'}
+      title={registered ? 'Send to AI' : buttonAriaLabel || 'Ask Model'}
     >
       {buttonLogoSrc ? (
         <img
           src={buttonLogoSrc}
-          alt={buttonAriaLabel}
-          className="w-6 h-6 object-contain"
-          style={{ width: 24, height: 24 }}
+          alt={registered ? 'Send to AI' : buttonAriaLabel}
+          className="w-5 h-5 object-contain"
         />
       ) : (
-        'Ask Model'
+        <span className="text-xs">{registered ? 'AI' : 'Ask'}</span>
       )}
+      <span className="ml-2 text-xs text-gray-900 whitespace-nowrap opacity-0 group-hover:opacity-100">
+        {registered ? 'Send to AI' : 'BYOM'}
+      </span>
     </button>
   );
 }

@@ -10,7 +10,7 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   text: string;
   ts: number;
-  meta?: { modelId?: string };
+  meta?: { modelId?: string; sentToAI?: boolean };
 }
 
 const app = express();
@@ -48,8 +48,8 @@ io.on('connection', (socket) => {
     socket.emit('history', history);
   });
 
-  socket.on('message', ({ conversationId, author, text, ts }) => {
-    const msg: ChatMessage = { author, role: 'user', text, ts };
+  socket.on('message', ({ conversationId, author, text, ts, meta }) => {
+    const msg: ChatMessage = { author, role: 'user', text, ts, meta };
     const arr = conversations[conversationId] || [];
     arr.push(msg);
     conversations[conversationId] = arr.slice(-500);

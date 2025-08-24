@@ -42,7 +42,16 @@ function InnerApp() {
     socketRef.current = s;
     s.emit('join', { conversationId: convId, userId });
     s.on('history', (msgs: StoredMessage[]) => {
+      const participants = new Set(
+        msgs.filter((m) => m.role === 'user').map((m) => m.author)
+      );
+      if (!participants.has(userId) && participants.size >= 2) {
+        alert('Conversation already has two participants');
+        s.disconnect();
+        return;
+      }
       setMessages(convId, msgs);
+      setJoined(true);
     });
     s.on('message', (msg: StoredMessage) => {
       addMessage(convId, msg);
@@ -50,7 +59,6 @@ function InnerApp() {
     s.on('assistant', (msg: StoredMessage) => {
       addMessage(convId, msg);
     });
-    setJoined(true);
   };
 
   const handleSend = (text: string) => {
@@ -79,23 +87,44 @@ function InnerApp() {
     addMessage(convId, msg);
   };
 
-  const publishAssistant = (m: Message & { meta?: { modelId?: string } }) => {
-    // Replace the ephemeral entry with a non-ephemeral version and broadcast
-    const published: StoredMessage = { ...m, ephemeral: false } as StoredMessage;
+  const handleUserPrompt = (text: string) => {
+    const ts = Date.now();
+    const msg: StoredMessage = {
+      author: userId,
+      role: 'user',
+      text,
+      ts,
+      ephemeral: true,
+      meta: { sentToAI: true },
+    };
+    addMessage(convId, msg);
+  };
+  const publishMessage = (m: StoredMessage) => {
+    const published: StoredMessage = { ...m, ephemeral: false };
     addMessage(convId, published);
-    socketRef.current?.emit('assistant', {
-      conversationId: convId,
-      author: 'assistant',
-      text: m.text,
-      ts: m.ts,
-      meta: m.meta,
-    });
+    if (m.role === 'assistant') {
+      socketRef.current?.emit('assistant', {
+        conversationId: convId,
+        author: 'assistant',
+        text: m.text,
+        ts: m.ts,
+        meta: m.meta,
+      });
+    } else if (m.role === 'user') {
+      socketRef.current?.emit('message', {
+        conversationId: convId,
+        author: userId,
+        text: m.text,
+        ts: m.ts,
+        meta: m.meta,
+      });
+    }
   };
 
   const getSnapshot = (): Message[] =>
     getMessages(convId)
       .slice(-50)
-      .map(({ author, role, text, ts }) => ({ author, role, text, ts }));
+  .map(({ author, role, text, ts }) => ({ author, role, text, ts }));
 
   return (
     <div className="flex flex-col h-screen">
@@ -111,13 +140,14 @@ function InnerApp() {
       )}
       {joined && (
         <>
-          <ChatWindow messages={messages} onPublishAssistant={publishAssistant} />
+          <ChatWindow userId={userId} messages={messages} onPublish={publishMessage} />
           <Composer
             userId={userId}
             conversationId={convId}
             onSend={handleSend}
             getSnapshot={getSnapshot}
             onAssistantMessage={handleAssistantMessage}
+            onUserPrompt={handleUserPrompt}
           />
         </>
       )}
