@@ -30,10 +30,68 @@ app.get("*", (req, res) => {
   res.sendFile(indexPath);
 });
 
+// In-memory conversation store (simple demo-grade persistence)
+type StoredMessage = {
+  author: string;
+  role: "user" | "assistant";
+  text: string;
+  ts: number;
+  meta?: { modelId?: string; sentToAI?: boolean };
+  ephemeral?: boolean;
+};
+
+const conversations = new Map<string, StoredMessage[]>();
+
 io.on("connection", (socket) => {
-  console.log("a user connected");
-  socket.on("message", (msg) => {
-    io.emit("message", msg);
+  console.log("[socket] client connected", socket.id);
+
+  socket.on("join", ({ conversationId, userId }: { conversationId: string; userId: string }) => {
+    if (!conversationId || !userId) return;
+    socket.join(conversationId);
+
+    // Ensure conversation exists
+    if (!conversations.has(conversationId)) {
+      conversations.set(conversationId, []);
+    }
+
+    // Send history to the newly joined client
+    const history = conversations.get(conversationId)!;
+    socket.emit("history", history);
+  });
+
+  socket.on(
+    "message",
+    (msg: { conversationId: string; author: string; text: string; ts: number; meta?: StoredMessage["meta"] }) => {
+      const { conversationId, author, text, ts, meta } = msg || ({} as any);
+      if (!conversationId || !author || typeof text !== "string" || typeof ts !== "number") return;
+
+      const entry: StoredMessage = { author, role: "user", text, ts, meta };
+      const list = conversations.get(conversationId) ?? [];
+      list.push(entry);
+      // Keep only the last 1000 messages per conversation
+      conversations.set(conversationId, list.slice(-1000));
+
+      io.to(conversationId).emit("message", entry);
+    }
+  );
+
+  socket.on(
+    "assistant",
+    (msg: { conversationId: string; text: string; ts: number; meta?: StoredMessage["meta"] }) => {
+      const { conversationId, text, ts, meta } = msg || ({} as any);
+      if (!conversationId || typeof text !== "string" || typeof ts !== "number") return;
+
+      const entry: StoredMessage = { author: "assistant", role: "assistant", text, ts, meta };
+      const list = conversations.get(conversationId) ?? [];
+      list.push(entry);
+      conversations.set(conversationId, list.slice(-1000));
+
+      io.to(conversationId).emit("assistant", entry);
+    }
+  );
+
+  socket.on("disconnect", (reason) => {
+    console.log("[socket] client disconnected", socket.id, reason);
   });
 });
 

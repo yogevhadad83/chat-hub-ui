@@ -29,10 +29,46 @@ app.get("*", (req, res) => {
     }
     res.sendFile(indexPath);
 });
+const conversations = new Map();
 io.on("connection", (socket) => {
-    console.log("a user connected");
+    console.log("[socket] client connected", socket.id);
+    socket.on("join", ({ conversationId, userId }) => {
+        if (!conversationId || !userId)
+            return;
+        socket.join(conversationId);
+        // Ensure conversation exists
+        if (!conversations.has(conversationId)) {
+            conversations.set(conversationId, []);
+        }
+        // Send history to the newly joined client
+        const history = conversations.get(conversationId);
+        socket.emit("history", history);
+    });
     socket.on("message", (msg) => {
-        io.emit("message", msg);
+        var _a;
+        const { conversationId, author, text, ts, meta } = msg || {};
+        if (!conversationId || !author || typeof text !== "string" || typeof ts !== "number")
+            return;
+        const entry = { author, role: "user", text, ts, meta };
+        const list = (_a = conversations.get(conversationId)) !== null && _a !== void 0 ? _a : [];
+        list.push(entry);
+        // Keep only the last 1000 messages per conversation
+        conversations.set(conversationId, list.slice(-1000));
+        io.to(conversationId).emit("message", entry);
+    });
+    socket.on("assistant", (msg) => {
+        var _a;
+        const { conversationId, text, ts, meta } = msg || {};
+        if (!conversationId || typeof text !== "string" || typeof ts !== "number")
+            return;
+        const entry = { author: "assistant", role: "assistant", text, ts, meta };
+        const list = (_a = conversations.get(conversationId)) !== null && _a !== void 0 ? _a : [];
+        list.push(entry);
+        conversations.set(conversationId, list.slice(-1000));
+        io.to(conversationId).emit("assistant", entry);
+    });
+    socket.on("disconnect", (reason) => {
+        console.log("[socket] client disconnected", socket.id, reason);
     });
 });
 server.listen(PORT, () => {
