@@ -1,49 +1,28 @@
-import path from 'node:path';
-import express from 'express';
-import { createServer } from 'node:http';
-import { Server as IOServer } from 'socket.io';
-
-type Msg = { author: string; role: 'user'|'assistant'; text: string; ts: number };
+import express from "express";
+import path from "path";
+import { createServer } from "http";
+import { Server } from "socket.io";
 
 const app = express();
-const httpServer = createServer(app);
-const io = new IOServer(httpServer, { cors: { origin: '*' } });
+const server = createServer(app);
+const io = new Server(server);
 
-const conversations = new Map<string, Msg[]>();
-const PORT = Number(process.env.PORT) || 4173;
-const DIST_DIR = path.resolve(__dirname, '../dist');
+const PORT = process.env.PORT || 3000;
+const distDir = path.join(__dirname, "../dist");
 
-io.on('connection', (socket) => {
-  socket.on('join', ({ conversationId, userId }) => {
-    socket.join(conversationId);
-    const history = conversations.get(conversationId) ?? [];
-    socket.emit('history', history);
-  });
+app.use(express.static(distDir));
 
-  socket.on('message', ({ conversationId, author, text, ts }) => {
-    const msg: Msg = { author, role: 'user', text, ts: ts ?? Date.now() };
-    const list = conversations.get(conversationId) ?? [];
-    list.push(msg);
-    if (list.length > 500) list.splice(0, list.length - 500);
-    conversations.set(conversationId, list);
-    io.to(conversationId).emit('message', msg);
-  });
+app.get("*", (req, res) => {
+  res.sendFile(path.join(distDir, "index.html"));
+});
 
-  socket.on('assistant', ({ conversationId, text, ts, meta }) => {
-    const msg: Msg = { author: 'assistant', role: 'assistant', text, ts: ts ?? Date.now() };
-    const list = conversations.get(conversationId) ?? [];
-    list.push(msg);
-    if (list.length > 500) list.splice(0, list.length - 500);
-    conversations.set(conversationId, list);
-    io.to(conversationId).emit('assistant', { ...msg, meta });
+io.on("connection", (socket) => {
+  console.log("a user connected");
+  socket.on("message", (msg) => {
+    io.emit("message", msg);
   });
 });
 
-app.use(express.static(DIST_DIR));
-app.get('*', (_req, res) => {
-  res.sendFile(path.join(DIST_DIR, 'index.html'));
-});
-
-httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`byom-chat listening on :${PORT}`);
+server.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });

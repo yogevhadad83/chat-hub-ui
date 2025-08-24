@@ -2,16 +2,15 @@
   "name": "byom-chat",
   "private": true,
   "version": "0.0.0",
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
-  "dev": "vite",
-  "build:client": "vite build",
-  "build:server": "tsc -p tsconfig.server.json && node -e \"const fs=require('fs'); if (fs.existsSync('server/server.js')) fs.renameSync('server/server.js','server/server.cjs')\"",
-  "build": "npm run build:client && npm run build:server",
-  "start": "node server/server.cjs",
-  "preview": "vite preview",
-  "lint": "eslint .",
-  "typecheck": "tsc -p tsconfig.json --noEmit"
+    "dev": "vite",
+    "build:client": "vite build",
+    "build:server": "tsc -p tsconfig.server.json",
+    "build": "npm run build:client && npm run build:server",
+    "preview": "vite preview",
+    "start": "node server/server.js",
+    "start:debug": "ls -R . && node server/server.js"
   },
   "dependencies": {
     "@chat-hub/byom": "*",
