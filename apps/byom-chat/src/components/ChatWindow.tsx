@@ -2,8 +2,8 @@ import { Message } from '../types';
 
 type Props = {
   userId: string;
-  messages: (Message & { meta?: { modelId?: string } })[];
-  onPublish?: (m: Message & { meta?: { modelId?: string } }) => void;
+  messages: (Message & { meta?: { modelId?: string; sentToAI?: boolean } })[];
+  onPublish?: (m: Message & { meta?: { modelId?: string; sentToAI?: boolean } }) => void;
 };
 
 export function ChatWindow({ userId, messages, onPublish }: Props) {
@@ -14,6 +14,7 @@ export function ChatWindow({ userId, messages, onPublish }: Props) {
         const isAssistant = m.role === 'assistant';
         const isOtherUser = m.role === 'user' && m.author !== userId;
         const isEphemeral = Boolean(m.ephemeral);
+        const sentToAI = Boolean(m.meta?.sentToAI);
         return (
           <div key={i} className={isMine ? 'text-right' : 'text-left'}>
             <div
@@ -41,9 +42,16 @@ export function ChatWindow({ userId, messages, onPublish }: Props) {
                 </button>
               )}
             </div>
-            {isAssistant && m.meta?.modelId && (
-              <div className="text-xs mt-1 text-gray-500 dark:text-gray-400">served by {m.meta.modelId}</div>
-            )}
+            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {isAssistant && m.meta?.modelId && (
+                <span className="inline-block">served by {m.meta.modelId}</span>
+              )}
+              {m.role === 'user' && sentToAI && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-300 border border-blue-500/30">
+                  sent to AI
+                </span>
+              )}
+            </div>
             <div className="text-[10px] mt-0.5 text-gray-400">
               {new Date(m.ts).toLocaleTimeString()}
             </div>

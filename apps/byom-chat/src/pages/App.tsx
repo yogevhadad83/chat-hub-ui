@@ -95,6 +95,7 @@ function InnerApp() {
       text,
       ts,
       ephemeral: true,
+      meta: { sentToAI: true },
     };
     addMessage(convId, msg);
   };
@@ -115,6 +116,7 @@ function InnerApp() {
         author: userId,
         text: m.text,
         ts: m.ts,
+        meta: m.meta,
       });
     }
   };
@@ -122,7 +124,7 @@ function InnerApp() {
   const getSnapshot = (): Message[] =>
     getMessages(convId)
       .slice(-50)
-      .map(({ author, role, text, ts }) => ({ author, role, text, ts }));
+  .map(({ author, role, text, ts }) => ({ author, role, text, ts }));
 
   return (
     <div className="flex flex-col h-screen">
